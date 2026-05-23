@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SiGaji — Sistem Penggajian Karyawan</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">₴</div>
+      <div>
+        <div class="brand-name">SiGaji</div>
+        <div class="brand-sub">Sistem Penggajian</div>
+      </div>
+    </div>
+
+    <ul class="nav-menu">
+      <li class="nav-item active" data-page="dashboard">
+        <span class="nav-icon">◈</span> Dashboard
+      </li>
+      <li class="nav-item" data-page="karyawan">
+        <span class="nav-icon">◉</span> Data Karyawan
+      </li>
+      <li class="nav-item" data-page="penggajian">
+        <span class="nav-icon">◎</span> Hitung Gaji
+      </li>
+      <li class="nav-item" data-page="slip">
+        <span class="nav-icon">▣</span> Slip Gaji
+      </li>
+      <li class="nav-item" data-page="laporan">
+        <span class="nav-icon">▦</span> Laporan
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <small>v1.0.0 · UKPL 2025</small>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content" id="main-content">
+
+    <!-- PAGE: DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h1>Dashboard</h1>
+        <p class="page-sub">Ringkasan data penggajian karyawan</p>
+      </div>
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="dashboard-row">
+        <div class="card" id="card-dept-summary">
+          <div class="card-title">Distribusi Departemen</div>
+          <div id="dept-summary-list"></div>
+        </div>
+        <div class="card" id="card-recent">
+          <div class="card-title">Karyawan Terbaru</div>
+          <div id="recent-employees"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: KARYAWAN -->
+    <div class="page" id="page-karyawan">
+      <div class="page-header">
+        <h1>Data Karyawan</h1>
+        <button class="btn btn-primary" id="btn-add-karyawan">+ Tambah Karyawan</button>
+      </div>
+
+      <div class="card">
+        <div class="filter-bar">
+          <input type="text" id="search-karyawan" class="input-field" placeholder="Cari nama / ID..." />
+          <select id="filter-dept" class="input-field">
+            <option value="">Semua Departemen</option>
+          </select>
+          <select id="filter-status" class="input-field">
+            <option value="">Semua Status</option>
+            <option value="Tetap">Tetap</option>
+            <option value="Kontrak">Kontrak</option>
+            <option value="Magang">Magang</option>
+          </select>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" id="table-karyawan">
+            <thead>
+              <tr>
+                <th>ID</th><th>Nama</th><th>Jabatan</th><th>Golongan</th>
+                <th>Status</th><th>Departemen</th><th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-karyawan"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="pagination-karyawan"></div>
+      </div>
+
+      <!-- Modal Form Karyawan -->
+      <div class="modal-overlay" id="modal-karyawan">
+        <div class="modal">
+          <div class="modal-header">
+            <h2 id="modal-karyawan-title">Tambah Karyawan</h2>
+            <button class="modal-close" id="close-modal-karyawan">✕</button>
+          </div>
+          <form id="form-karyawan" novalidate>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>ID Karyawan <span class="required">*</span></label>
+                <input type="text" id="f-id" class="input-field" placeholder="KRY-001" maxlength="10" />
+                <span class="error-msg" id="err-id"></span>
+              </div>
+              <div class="form-group">
+                <label>Nama Lengkap <span class="required">*</span></label>
+                <input type="text" id="f-nama" class="input-field" placeholder="Nama karyawan" maxlength="60" />
+                <span class="error-msg" id="err-nama"></span>
+              </div>
+              <div class="form-group">
+                <label>Jabatan <span class="required">*</span></label>
+                <select id="f-jabatan" class="input-field">
+                  <option value="">-- Pilih Jabatan --</option>
+                  <option value="Direktur">Direktur</option>
+                  <option value="Manajer">Manajer</option>
+                  <option value="Supervisor">Supervisor</option>
+                  <option value="Staff Senior">Staff Senior</option>
+                  <option value="Staff Junior">Staff Junior</option>
+                  <option value="Magang">Magang</option>
+                </select>
+                <span class="error-msg" id="err-jabatan"></span>
+              </div>
+              <div class="form-group">
+                <label>Golongan <span class="required">*</span></label>
+                <select id="f-golongan" class="input-field">
+                  <option value="">-- Pilih Golongan --</option>
+                  <option value="I">Golongan I</option>
+                  <option value="II">Golongan II</option>
+                  <option value="III">Golongan III</option>
+                  <option value="IV">Golongan IV</option>
+                  <option value="V">Golongan V</option>
+                </select>
+                <span class="error-msg" id="err-golongan"></span>
+              </div>
+              <div class="form-group">
+                <label>Status Karyawan <span class="required">*</span></label>
+                <select id="f-status" class="input-field">
+                  <option value="">-- Pilih Status --</option>
+                  <option value="Tetap">Tetap</option>
+                  <option value="Kontrak">Kontrak</option>
+                  <option value="Magang">Magang</option>
+                </select>
+                <span class="error-msg" id="err-status"></span>
+              </div>
+              <div class="form-group">
+                <label>Departemen <span class="required">*</span></label>
+                <select id="f-departemen" class="input-field">
+                  <option value="">-- Pilih Departemen --</option>
+                  <option value="IT">IT</option>
+                  <option value="HRD">HRD</option>
+                  <option value="Keuangan">Keuangan</option>
+                  <option value="Marketing">Marketing</option>
+                  <option value="Operasional">Operasional</option>
+                  <option value="Produksi">Produksi</option>
+                </select>
+                <span class="error-msg" id="err-departemen"></span>
+              </div>
+              <div class="form-group">
+                <label>NPWP</label>
+                <input type="text" id="f-npwp" class="input-field" placeholder="Opsional (15 digit)" maxlength="15" />
+                <span class="error-msg" id="err-npwp"></span>
+              </div>
+              <div class="form-group">
+                <label>Status PTKP</label>
+                <select id="f-ptkp" class="input-field">
+                  <option value="TK0">TK/0 — Tidak Kawin, 0 tanggungan</option>
+                  <option value="TK1">TK/1 — Tidak Kawin, 1 tanggungan</option>
+                  <option value="TK2">TK/2 — Tidak Kawin, 2 tanggungan</option>
+                  <option value="TK3">TK/3 — Tidak Kawin, 3 tanggungan</option>
+                  <option value="K0">K/0 — Kawin, 0 tanggungan</option>
+                  <option value="K1">K/1 — Kawin, 1 tanggungan</option>
+                  <option value="K2">K/2 — Kawin, 2 tanggungan</option>
+                  <option value="K3">K/3 — Kawin, 3 tanggungan</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-ghost" id="cancel-karyawan">Batal</button>
+              <button type="submit" class="btn btn-primary">Simpan</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: PENGGAJIAN -->
+    <div class="page" id="page-penggajian">
+      <div class="page-header">
+        <h1>Hitung Gaji</h1>
+        <p class="page-sub">Input data lembur dan absensi untuk menghitung gaji bulan ini</p>
+      </div>
+
+      <div class="penggajian-controls card">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Bulan</label>
+            <select id="pg-bulan" class="input-field"></select>
+          </div>
+          <div class="form-group">
+            <label>Tahun</label>
+            <input type="number" id="pg-tahun" class="input-field" min="2020" max="2030" />
+          </div>
+          <div class="form-group">
+            <label>Filter Departemen</label>
+            <select id="pg-dept" class="input-field">
+              <option value="">Semua</option>
+            </select>
+          </div>
+          <div class="form-group align-end">
+            <button class="btn btn-primary" id="btn-hitung-semua">⚡ Hitung Semua</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrapper">
+          <table class="data-table" id="table-penggajian">
+            <thead>
+              <tr>
+                <th>ID</th><th>Nama</th><th>Jabatan</th>
+                <th>Lembur (jam)</th><th>Absensi (hari)</th>
+                <th>Gaji Pokok</th><th>Total Tunjangan</th>
+                <th>Total Potongan</th><th>Gaji Bersih</th><th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-penggajian"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Modal Input Lembur/Absensi -->
+      <div class="modal-overlay" id="modal-penggajian">
+        <div class="modal">
+          <div class="modal-header">
+            <h2 id="modal-pg-title">Input Data Penggajian</h2>
+            <button class="modal-close" id="close-modal-pg">✕</button>
+          </div>
+          <div id="pg-karyawan-info" class="info-box"></div>
+          <form id="form-penggajian" novalidate>
+            <input type="hidden" id="pg-id-karyawan" />
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Jam Lembur <span class="required">*</span></label>
+                <input type="number" id="pg-lembur" class="input-field" min="0" max="100" step="0.5" value="0" />
+                <span class="error-msg" id="err-lembur"></span>
+                <small>Maks 100 jam/bulan</small>
+              </div>
+              <div class="form-group">
+                <label>Hari Tidak Hadir <span class="required">*</span></label>
+                <input type="number" id="pg-absensi" class="input-field" min="0" max="26" step="1" value="0" />
+                <span class="error-msg" id="err-absensi"></span>
+                <small>Maks 26 hari kerja</small>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-ghost" id="cancel-pg">Batal</button>
+              <button type="submit" class="btn btn-primary">Hitung & Simpan</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: SLIP GAJI -->
+    <div class="page" id="page-slip">
+      <div class="page-header">
+        <h1>Slip Gaji</h1>
+        <p class="page-sub">Lihat dan cetak slip gaji karyawan</p>
+      </div>
+
+      <div class="card">
+        <div class="filter-bar">
+          <select id="slip-bulan" class="input-field"></select>
+          <select id="slip-tahun" class="input-field"></select>
+          <input type="text" id="slip-search" class="input-field" placeholder="Cari nama / ID..." />
+        </div>
+        <div id="slip-list"></div>
+      </div>
+
+      <!-- Slip Detail Modal -->
+      <div class="modal-overlay" id="modal-slip">
+        <div class="modal modal-large" id="slip-print-area">
+          <div class="modal-header no-print-close">
+            <h2>Slip Gaji</h2>
+            <div class="modal-actions">
+              <button class="btn btn-ghost" onclick="window.print()">🖨 Cetak</button>
+              <button class="modal-close" id="close-modal-slip">✕</button>
+            </div>
+          </div>
+          <div id="slip-detail-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: LAPORAN -->
+    <div class="page" id="page-laporan">
+      <div class="page-header">
+        <h1>Laporan Penggajian</h1>
+        <p class="page-sub">Rekap total penggajian per bulan dan departemen</p>
+      </div>
+
+      <div class="card">
+        <div class="filter-bar">
+          <select id="lap-bulan" class="input-field"></select>
+          <select id="lap-tahun" class="input-field"></select>
+          <select id="lap-dept" class="input-field">
+            <option value="">Semua Departemen</option>
+          </select>
+          <button class="btn btn-primary" id="btn-generate-laporan">Generate</button>
+          <button class="btn btn-ghost" id="btn-export-laporan">⬇ Export CSV</button>
+        </div>
+      </div>
+
+      <div id="laporan-summary" class="stats-grid"></div>
+
+      <div class="card">
+        <div class="table-wrapper">
+          <table class="data-table" id="table-laporan">
+            <thead>
+              <tr>
+                <th>ID</th><th>Nama</th><th>Jabatan</th><th>Departemen</th>
+                <th>Gaji Pokok</th><th>Tunjangan</th><th>Lembur</th>
+                <th>Potongan</th><th>Gaji Bersih</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-laporan"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Toast Notification -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/utils/formatter.js"></script>
+  <script src="js/utils/validator.js"></script>
+  <script src="js/utils/storage.js"></script>
+  <script src="js/modules/constants.js"></script>
+  <script src="js/modules/salary.js"></script>
+  <script src="js/modules/employee.js"></script>
+  <script src="js/modules/payroll.js"></script>
+  <script src="js/modules/report.js"></script>
+  <script src="js/modules/slip.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
