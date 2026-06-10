@@ -4,7 +4,7 @@
  * Dipusatkan di satu tempat agar mudah diuji (whitebox) dan dimodifikasi.
  */
 
-const CONSTANTS = {
+var CONSTANTS = {
 
   // ── GAJI POKOK berdasarkan GOLONGAN ──
   // (dalam rupiah per bulan)

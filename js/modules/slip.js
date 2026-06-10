@@ -8,7 +8,7 @@ const SlipModule = (() => {
   let currentBulan = new Date().getMonth() + 1;
   let currentTahun = new Date().getFullYear();
 
-  function renderList() {
+  async function renderList() {
     const bulan = parseInt(document.getElementById("slip-bulan").value);
     const tahun = parseInt(document.getElementById("slip-tahun").value);
     const keyword = document.getElementById("slip-search").value.toLowerCase();
@@ -16,12 +16,19 @@ const SlipModule = (() => {
     currentBulan = bulan;
     currentTahun = tahun;
 
-    let data = Storage.getPenggajianByBulan(bulan, tahun);
+    let data = [];
+    try {
+      const res = await API.payroll.getAll({ bulan, tahun });
+      data = res?.data || [];
+    } catch (err) {
+      Toast.show('Gagal memuat slip gaji: ' + err.message, 'error');
+      return;
+    }
 
     if (keyword) {
       data = data.filter(p =>
-        p.namaKaryawan.toLowerCase().includes(keyword) ||
-        p.idKaryawan.toLowerCase().includes(keyword)
+        (p.nama_lengkap || '').toLowerCase().includes(keyword) ||
+        (p.nik || '').toLowerCase().includes(keyword)
       );
     }
 
@@ -36,63 +43,80 @@ const SlipModule = (() => {
       return;
     }
 
-    container.innerHTML = data.map(p => `
-      <div class="slip-card" onclick="SlipModule.openDetail('${p.idKaryawan}', ${bulan}, ${tahun})">
-        <div class="slip-card-info">
-          <div class="slip-card-name">${p.namaKaryawan}</div>
-          <div class="slip-card-meta">${p.idKaryawan} · ${p.jabatan} · ${p.departemen}</div>
-        </div>
-        <div class="slip-card-gaji">${Formatter.rupiah(p.gajiBersih)}</div>
-        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); SlipModule.openDetail('${p.idKaryawan}', ${bulan}, ${tahun})">Lihat Slip</button>
-      </div>
-    `).join("");
-  }
-
-  function openDetail(idKaryawan, bulan, tahun) {
-    const pg = Storage.getPenggajian(idKaryawan, bulan, tahun);
-    if (!pg) {
-      Toast.show("Data slip tidak ditemukan", "error");
-      return;
+    function avatarClass(nama) {
+      let sum = 0;
+      for (let i = 0; i < (nama || '').length; i++) sum += nama.charCodeAt(i);
+      return 'av-' + (sum % 8);
     }
 
-    const content = buildSlipHTML(pg, bulan, tahun);
-    document.getElementById("slip-detail-content").innerHTML = content;
-    openModal("modal-slip");
+    container.innerHTML = data.map(p => {
+      const nama     = p.nama_lengkap || '';
+      const initials = nama ? nama.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() : '?';
+      const avColor  = avatarClass(nama);
+      return `
+        <div class="slip-card" onclick="SlipModule.openDetail(${p.id})">
+          <div class="slip-card-info employee-cell">
+            <div class="avatar ${avColor}" style="width:36px;height:36px;font-size:13px">${initials}</div>
+            <div class="employee-info">
+              <div class="slip-card-name">${nama}</div>
+              <div class="slip-card-meta">${p.nik || ''} · ${p.jabatan || ''} · ${p.departemen || ''}</div>
+            </div>
+          </div>
+          <div class="slip-card-gaji">${Formatter.rupiah(p.total_gaji_bersih || 0)}</div>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); SlipModule.openDetail(${p.id})">Lihat Slip</button>
+        </div>
+      `;
+    }).join("");
   }
 
-  function buildSlipHTML(pg, bulan, tahun) {
+  async function openDetail(payrollId) {
+    try {
+      const res = await API.payroll.getById(payrollId);
+      const pg = res?.data;
+      if (!pg) {
+        Toast.show("Data slip tidak ditemukan", "error");
+        return;
+      }
+      const content = buildSlipHTML(pg);
+      document.getElementById("slip-detail-content").innerHTML = content;
+      openModal("modal-slip");
+    } catch (err) {
+      Toast.show('Gagal membuka slip: ' + err.message, 'error');
+    }
+  }
+
+  function buildSlipHTML(pg) {
+    // pg adalah data dari DB: nama_lengkap, nik, jabatan, departemen, dll.
+    const bulan = pg.bulan_angka || currentBulan;
+    const tahun = pg.tahun      || currentTahun;
     return `
       <div class="slip-detail-header">
         <div class="slip-company">PT. MAJU BERSAMA INDONESIA</div>
         <div class="slip-title">SLIP GAJI KARYAWAN</div>
-        <div class="slip-period">Periode: ${Formatter.periodeGaji(bulan, tahun)}</div>
+        <div class="slip-period">Periode: ${pg.periode_bulan || Formatter.periodeGaji(bulan, tahun)}</div>
         <div class="slip-period" style="margin-top:4px;font-size:11px;color:var(--text-muted)">Dicetak: ${Formatter.tanggal(new Date().toISOString())}</div>
       </div>
 
       <div class="slip-employee-info">
         <div class="slip-field">
-          <span class="slip-field-label">ID Karyawan</span>
-          <span class="slip-field-value">${pg.idKaryawan}</span>
+          <span class="slip-field-label">NIK</span>
+          <span class="slip-field-value">${pg.nik || '-'}</span>
         </div>
         <div class="slip-field">
           <span class="slip-field-label">Nama</span>
-          <span class="slip-field-value">${pg.namaKaryawan}</span>
+          <span class="slip-field-value">${pg.nama_lengkap || '-'}</span>
         </div>
         <div class="slip-field">
           <span class="slip-field-label">Jabatan</span>
-          <span class="slip-field-value">${pg.jabatan}</span>
-        </div>
-        <div class="slip-field">
-          <span class="slip-field-label">Golongan</span>
-          <span class="slip-field-value">Golongan ${pg.golongan}</span>
-        </div>
-        <div class="slip-field">
-          <span class="slip-field-label">Status</span>
-          <span class="slip-field-value">${pg.status}</span>
+          <span class="slip-field-value">${pg.jabatan || '-'}</span>
         </div>
         <div class="slip-field">
           <span class="slip-field-label">Departemen</span>
-          <span class="slip-field-value">${pg.departemen}</span>
+          <span class="slip-field-value">${pg.departemen || '-'}</span>
+        </div>
+        <div class="slip-field">
+          <span class="slip-field-label">Status</span>
+          <span class="slip-field-value">${pg.status_pekerjaan || '-'}</span>
         </div>
       </div>
 
@@ -101,28 +125,20 @@ const SlipModule = (() => {
         <tr class="slip-section-title"><td colspan="2">▸ PENGHASILAN</td></tr>
         <tr>
           <td>Gaji Pokok</td>
-          <td class="slip-row-right text-success">${Formatter.rupiah(pg.gajiPokok)}</td>
+          <td class="slip-row-right text-success">${Formatter.rupiah(pg.gaji_pokok || 0)}</td>
         </tr>
         <tr>
-          <td>Tunjangan Transport</td>
-          <td class="slip-row-right text-success">${Formatter.rupiah(pg.tunjangan.transport)}</td>
+          <td>Tunjangan</td>
+          <td class="slip-row-right text-success">${Formatter.rupiah(pg.tunjangan || 0)}</td>
         </tr>
+        ${(pg.jam_lembur > 0) ? `
         <tr>
-          <td>Tunjangan Makan</td>
-          <td class="slip-row-right text-success">${Formatter.rupiah(pg.tunjangan.makan)}</td>
-        </tr>
-        <tr>
-          <td>Tunjangan Jabatan</td>
-          <td class="slip-row-right text-success">${Formatter.rupiah(pg.tunjangan.jabatan)}</td>
-        </tr>
-        ${pg.upahLembur > 0 ? `
-        <tr>
-          <td>Upah Lembur (${pg.jamLembur} jam)</td>
-          <td class="slip-row-right text-success">${Formatter.rupiah(pg.upahLembur)}</td>
-        </tr>` : ""}
+          <td>Upah Lembur (${pg.jam_lembur} jam)</td>
+          <td class="slip-row-right text-success">${Formatter.rupiah(SalaryCalculator.hitungLembur(pg.gaji_pokok || 0, pg.jam_lembur))}</td>
+        </tr>` : ''}
         <tr style="font-weight:600;border-top:1px solid var(--border)">
-          <td>Total Penghasilan Bruto</td>
-          <td class="slip-row-right text-success">${Formatter.rupiah(pg.penghasilanBruto)}</td>
+          <td>Total Penghasilan</td>
+          <td class="slip-row-right text-success">${Formatter.rupiah((pg.gaji_pokok || 0) + (pg.tunjangan || 0) + SalaryCalculator.hitungLembur(pg.gaji_pokok || 0, pg.jam_lembur || 0))}</td>
         </tr>
 
         <tr><td colspan="2" style="padding:8px 0"></td></tr>
@@ -130,52 +146,23 @@ const SlipModule = (() => {
         <!-- POTONGAN -->
         <tr class="slip-section-title"><td colspan="2">▸ POTONGAN</td></tr>
         <tr>
-          <td>BPJS Kesehatan (1%)</td>
-          <td class="slip-row-right text-danger">-${Formatter.rupiah(pg.bpjs.kesehatan)}</td>
+          <td>BPJS + PPh 21</td>
+          <td class="slip-row-right text-danger">-${Formatter.rupiah(pg.pajak || 0)}</td>
         </tr>
-        ${pg.bpjs.ketenagakerjaan > 0 ? `
         <tr>
-          <td>BPJS Ketenagakerjaan (2%)</td>
-          <td class="slip-row-right text-danger">-${Formatter.rupiah(pg.bpjs.ketenagakerjaan)}</td>
-        </tr>` : ""}
-        <tr>
-          <td>PPh 21 / Bulan</td>
-          <td class="slip-row-right text-danger">-${Formatter.rupiah(pg.pph21.pajakBulanan)}</td>
+          <td>Potongan Lainnya</td>
+          <td class="slip-row-right text-danger">-${Formatter.rupiah((pg.potongan || 0) - (pg.pajak || 0))}</td>
         </tr>
-        ${pg.potonganAbsensi > 0 ? `
-        <tr>
-          <td>Potongan Absensi (${pg.hariAbsensi} hari)</td>
-          <td class="slip-row-right text-danger">-${Formatter.rupiah(pg.potonganAbsensi)}</td>
-        </tr>` : ""}
         <tr style="font-weight:600;border-top:1px solid var(--border)">
           <td>Total Potongan</td>
-          <td class="slip-row-right text-danger">-${Formatter.rupiah(pg.totalPotongan)}</td>
+          <td class="slip-row-right text-danger">-${Formatter.rupiah(pg.potongan || 0)}</td>
         </tr>
       </table>
-
-      <!-- Detail PPh 21 -->
-      ${pg.pph21.pkpTahunan > 0 ? `
-      <details style="margin-bottom:16px;font-size:12px;color:var(--text-secondary)">
-        <summary style="cursor:pointer;padding:8px 0">Detail Perhitungan PPh 21</summary>
-        <div style="padding:12px;background:var(--bg-surface);border-radius:6px;margin-top:8px">
-          <div>Bruto Tahunan: ${Formatter.rupiah(pg.pph21.brutoTahunan)}</div>
-          <div>Biaya Jabatan: -${Formatter.rupiah(pg.pph21.biayaJabatan)}</div>
-          <div>Neto Tahunan: ${Formatter.rupiah(pg.pph21.netoTahunan)}</div>
-          <div>PTKP: -${Formatter.rupiah(pg.pph21.ptkp)}</div>
-          <div><strong>PKP Tahunan: ${Formatter.rupiah(pg.pph21.pkpTahunan)}</strong></div>
-          <br>
-          ${pg.pph21.detail.map(d => `
-            <div>${d.label} × ${d.tarif} = ${Formatter.rupiah(d.pajak)}</div>
-          `).join("")}
-          <div><strong>Total PPh Tahunan: ${Formatter.rupiah(pg.pph21.pajakTahunan)}</strong></div>
-          <div>PPh Bulanan (÷12): <strong>${Formatter.rupiah(pg.pph21.pajakBulanan)}</strong></div>
-        </div>
-      </details>` : ""}
 
       <!-- GAJI BERSIH -->
       <div class="slip-bersih-box">
         <div class="slip-bersih-label">GAJI BERSIH DITERIMA</div>
-        <div class="slip-bersih-value">${Formatter.rupiah(pg.gajiBersih)}</div>
+        <div class="slip-bersih-value">${Formatter.rupiah(pg.total_gaji_bersih || 0)}</div>
       </div>
 
       <div style="margin-top:20px;font-size:11px;color:var(--text-muted);text-align:center">

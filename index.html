@@ -1,17 +1,25 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SiGaji — Sistem Penggajian Karyawan</title>
+  <title>SiGaji — Dashboard Penggajian</title>
+  <meta name="description" content="Platform manajemen penggajian karyawan dengan analitik data, simulasi kebijakan, dan laporan profesional." />
   <link rel="stylesheet" href="css/main.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Chart.js v4 — Library visualisasi data interaktif -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
+<div class="app-shell">
 
-  <!-- SIDEBAR -->
+  <!-- ═══════════════════════════════════════
+       SIDEBAR — Navigasi Utama
+  ═══════════════════════════════════════ -->
   <nav class="sidebar" id="sidebar">
+
+    <!-- Logo / Brand -->
     <div class="sidebar-brand">
       <div class="brand-icon">₴</div>
       <div>
@@ -20,6 +28,7 @@
       </div>
     </div>
 
+    <!-- Navigation -->
     <ul class="nav-menu">
       <li class="nav-item active" data-page="dashboard">
         <span class="nav-icon">◈</span> Dashboard
@@ -36,325 +45,750 @@
       <li class="nav-item" data-page="laporan">
         <span class="nav-icon">▦</span> Laporan
       </li>
+
+      <div class="nav-sep"></div>
+      <div class="nav-section-label">Analitik & Tools</div>
+
+      <li class="nav-item" data-page="analitik">
+        <span class="nav-icon">◐</span> Analitik Data
+      </li>
+      <li class="nav-item" data-page="skenario">
+        <span class="nav-icon">◑</span> Simulasi Skenario
+      </li>
     </ul>
 
+    <!-- User Profile (Bottom) -->
     <div class="sidebar-footer">
-      <small>v1.0.0 · UKPL 2025</small>
+      <div class="sidebar-user" id="sidebar-user-area">
+        <div class="sidebar-user-avatar" id="sidebar-avatar">A</div>
+        <div>
+          <div class="sidebar-user-name" id="sidebar-user-name">Administrator</div>
+          <div class="sidebar-user-role" id="sidebar-user-role">admin@sigaji.id</div>
+        </div>
+        <span class="sidebar-user-more">⋮</span>
+      </div>
     </div>
   </nav>
 
-  <!-- MAIN CONTENT -->
-  <main class="main-content" id="main-content">
+  <!-- ═══════════════════════════════════════
+       APP BODY — Topbar + Content
+  ═══════════════════════════════════════ -->
+  <div class="app-body">
 
-    <!-- PAGE: DASHBOARD -->
-    <div class="page active" id="page-dashboard">
-      <div class="page-header">
-        <h1>Dashboard</h1>
-        <p class="page-sub">Ringkasan data penggajian karyawan</p>
-      </div>
-      <div class="stats-grid" id="stats-grid"></div>
-      <div class="dashboard-row">
-        <div class="card" id="card-dept-summary">
-          <div class="card-title">Distribusi Departemen</div>
-          <div id="dept-summary-list"></div>
-        </div>
-        <div class="card" id="card-recent">
-          <div class="card-title">Karyawan Terbaru</div>
-          <div id="recent-employees"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- PAGE: KARYAWAN -->
-    <div class="page" id="page-karyawan">
-      <div class="page-header">
-        <h1>Data Karyawan</h1>
-        <button class="btn btn-primary" id="btn-add-karyawan">+ Tambah Karyawan</button>
+    <!-- ── TOPBAR ── -->
+    <header class="topbar">
+      <div>
+        <div class="topbar-title" id="topbar-title">Dashboard</div>
       </div>
 
-      <div class="card">
-        <div class="filter-bar">
-          <input type="text" id="search-karyawan" class="input-field" placeholder="Cari nama / ID..." />
-          <select id="filter-dept" class="input-field">
-            <option value="">Semua Departemen</option>
-          </select>
-          <select id="filter-status" class="input-field">
-            <option value="">Semua Status</option>
-            <option value="Tetap">Tetap</option>
-            <option value="Kontrak">Kontrak</option>
-            <option value="Magang">Magang</option>
-          </select>
-        </div>
-        <div class="table-wrapper">
-          <table class="data-table" id="table-karyawan">
-            <thead>
-              <tr>
-                <th>ID</th><th>Nama</th><th>Jabatan</th><th>Golongan</th>
-                <th>Status</th><th>Departemen</th><th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="tbody-karyawan"></tbody>
-          </table>
-        </div>
-        <div class="pagination" id="pagination-karyawan"></div>
-      </div>
+      <div class="topbar-actions">
+        <!-- Tombol Refresh Data -->
+        <button class="icon-btn" id="btn-refresh" title="Refresh">↻</button>
 
-      <!-- Modal Form Karyawan -->
-      <div class="modal-overlay" id="modal-karyawan">
-        <div class="modal">
-          <div class="modal-header">
-            <h2 id="modal-karyawan-title">Tambah Karyawan</h2>
-            <button class="modal-close" id="close-modal-karyawan">✕</button>
+        <!-- Theme Toggle -->
+        <button class="icon-btn" id="btn-theme" title="Ganti Tema">🌙</button>
+
+        <!-- Tombol Hamburguer (Mobile) -->
+        <button class="icon-btn" id="btn-hamburger" title="Menu" style="display:none">☰</button>
+
+        <!-- User Dropdown -->
+        <div class="topbar-dropdown">
+          <div class="topbar-user" id="topbar-user-btn">
+            <div class="topbar-avatar" id="topbar-avatar">A</div>
+            <span class="topbar-user-name" id="topbar-user-name">Administrator</span>
+            <span style="color:var(--text-muted);font-size:12px">▾</span>
           </div>
-          <form id="form-karyawan" novalidate>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>ID Karyawan <span class="required">*</span></label>
-                <input type="text" id="f-id" class="input-field" placeholder="KRY-001" maxlength="10" />
-                <span class="error-msg" id="err-id"></span>
-              </div>
-              <div class="form-group">
-                <label>Nama Lengkap <span class="required">*</span></label>
-                <input type="text" id="f-nama" class="input-field" placeholder="Nama karyawan" maxlength="60" />
-                <span class="error-msg" id="err-nama"></span>
-              </div>
-              <div class="form-group">
-                <label>Jabatan <span class="required">*</span></label>
-                <select id="f-jabatan" class="input-field">
-                  <option value="">-- Pilih Jabatan --</option>
-                  <option value="Direktur">Direktur</option>
-                  <option value="Manajer">Manajer</option>
-                  <option value="Supervisor">Supervisor</option>
-                  <option value="Staff Senior">Staff Senior</option>
-                  <option value="Staff Junior">Staff Junior</option>
-                  <option value="Magang">Magang</option>
-                </select>
-                <span class="error-msg" id="err-jabatan"></span>
-              </div>
-              <div class="form-group">
-                <label>Golongan <span class="required">*</span></label>
-                <select id="f-golongan" class="input-field">
-                  <option value="">-- Pilih Golongan --</option>
-                  <option value="I">Golongan I</option>
-                  <option value="II">Golongan II</option>
-                  <option value="III">Golongan III</option>
-                  <option value="IV">Golongan IV</option>
-                  <option value="V">Golongan V</option>
-                </select>
-                <span class="error-msg" id="err-golongan"></span>
-              </div>
-              <div class="form-group">
-                <label>Status Karyawan <span class="required">*</span></label>
-                <select id="f-status" class="input-field">
-                  <option value="">-- Pilih Status --</option>
-                  <option value="Tetap">Tetap</option>
-                  <option value="Kontrak">Kontrak</option>
-                  <option value="Magang">Magang</option>
-                </select>
-                <span class="error-msg" id="err-status"></span>
-              </div>
-              <div class="form-group">
-                <label>Departemen <span class="required">*</span></label>
-                <select id="f-departemen" class="input-field">
-                  <option value="">-- Pilih Departemen --</option>
-                  <option value="IT">IT</option>
-                  <option value="HRD">HRD</option>
-                  <option value="Keuangan">Keuangan</option>
-                  <option value="Marketing">Marketing</option>
-                  <option value="Operasional">Operasional</option>
-                  <option value="Produksi">Produksi</option>
-                </select>
-                <span class="error-msg" id="err-departemen"></span>
-              </div>
-              <div class="form-group">
-                <label>NPWP</label>
-                <input type="text" id="f-npwp" class="input-field" placeholder="Opsional (15 digit)" maxlength="15" />
-                <span class="error-msg" id="err-npwp"></span>
-              </div>
-              <div class="form-group">
-                <label>Status PTKP</label>
-                <select id="f-ptkp" class="input-field">
-                  <option value="TK0">TK/0 — Tidak Kawin, 0 tanggungan</option>
-                  <option value="TK1">TK/1 — Tidak Kawin, 1 tanggungan</option>
-                  <option value="TK2">TK/2 — Tidak Kawin, 2 tanggungan</option>
-                  <option value="TK3">TK/3 — Tidak Kawin, 3 tanggungan</option>
-                  <option value="K0">K/0 — Kawin, 0 tanggungan</option>
-                  <option value="K1">K/1 — Kawin, 1 tanggungan</option>
-                  <option value="K2">K/2 — Kawin, 2 tanggungan</option>
-                  <option value="K3">K/3 — Kawin, 3 tanggungan</option>
-                </select>
-              </div>
+
+          <div class="topbar-dropdown-menu" id="topbar-dropdown">
+            <div class="dropdown-item">
+              <span>👤</span> Profil Saya
             </div>
-            <div class="form-actions">
-              <button type="button" class="btn btn-ghost" id="cancel-karyawan">Batal</button>
-              <button type="submit" class="btn btn-primary">Simpan</button>
+            <div class="dropdown-item">
+              <span>⚙️</span> Pengaturan
             </div>
-          </form>
+            <div class="dropdown-sep"></div>
+            <div class="dropdown-item danger" id="btn-logout">
+              <span>🚪</span> Keluar
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- ── MAIN CONTENT ── -->
+    <main class="main-content">
+
+      <!-- ══════════════════════════════════
+           PAGE: DASHBOARD
+      ══════════════════════════════════ -->
+      <div class="page active" id="page-dashboard">
+        <!-- Dashboard Hero (Italian SaaS Reference Style) -->
+        <div class="dashboard-hero" style="display:flex; justify-content:space-between; align-items:flex-end; padding:20px 0 30px; border-bottom:1px solid var(--border); margin-bottom:24px;">
+          <div class="hero-title-area" style="display:flex; align-items:center; gap:12px;">
+            <h1 id="hero-month" style="font-size:32px; font-weight:800; color:var(--text-primary); letter-spacing:-0.5px;">—</h1>
+            <span class="badge" style="background-color:var(--success-alpha); color:var(--success-text); padding:4px 10px; font-weight:600; border-radius:12px; font-size:12px;">Belum dibayar</span>
+          </div>
+          <div class="hero-stats-area" style="display:flex; gap:32px;">
+            <div class="hero-stat">
+              <div class="hero-stat-label" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px;">Total Gaji Bersih</div>
+              <div class="hero-stat-val" id="banner-total-gaji" style="font-size:20px; font-weight:700; color:var(--text-primary);">—</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-label" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px;">Total Potongan</div>
+              <div class="hero-stat-val" id="banner-total-potongan" style="font-size:20px; font-weight:700; color:var(--text-primary);">—</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-label" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px;">Karyawan Aktif</div>
+              <div class="hero-stat-val" id="banner-jumlah-karyawan" style="font-size:20px; font-weight:700; color:var(--text-primary);">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Row: Dept Summary + Recent -->
+        <div class="dashboard-row">
+          <div class="card" id="card-dept-summary">
+            <div class="card-title">📍 Distribusi Departemen</div>
+            <div id="dept-summary-list"></div>
+          </div>
+          <div class="card" id="card-recent">
+            <div class="card-title">🕐 Karyawan Terbaru</div>
+            <div id="recent-employees"></div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- PAGE: PENGGAJIAN -->
-    <div class="page" id="page-penggajian">
-      <div class="page-header">
-        <h1>Hitung Gaji</h1>
-        <p class="page-sub">Input data lembur dan absensi untuk menghitung gaji bulan ini</p>
-      </div>
+      <!-- ══════════════════════════════════
+           PAGE: DATA KARYAWAN
+      ══════════════════════════════════ -->
+      <div class="page" id="page-karyawan">
+        <div class="page-header">
+          <div>
+            <h1>Data Karyawan</h1>
+            <p class="page-sub">Kelola seluruh data karyawan perusahaan</p>
+          </div>
+          <button class="btn btn-primary" id="btn-add-karyawan">+ Tambah Karyawan</button>
+        </div>
 
-      <div class="penggajian-controls card">
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Bulan</label>
-            <select id="pg-bulan" class="input-field"></select>
-          </div>
-          <div class="form-group">
-            <label>Tahun</label>
-            <input type="number" id="pg-tahun" class="input-field" min="2020" max="2030" />
-          </div>
-          <div class="form-group">
-            <label>Filter Departemen</label>
-            <select id="pg-dept" class="input-field">
-              <option value="">Semua</option>
+        <div class="card">
+          <div class="filter-bar">
+            <input type="text" id="search-karyawan" class="input-field" placeholder="🔍  Cari nama atau ID karyawan..." style="min-width:220px" />
+            <select id="filter-dept" class="input-field">
+              <option value="">Semua Departemen</option>
+            </select>
+            <select id="filter-status" class="input-field">
+              <option value="">Semua Status</option>
+              <option value="Tetap">Tetap</option>
+              <option value="Kontrak">Kontrak</option>
+              <option value="Magang">Magang</option>
             </select>
           </div>
-          <div class="form-group align-end">
-            <button class="btn btn-primary" id="btn-hitung-semua">⚡ Hitung Semua</button>
+          <div class="table-wrapper">
+            <table class="data-table" id="table-karyawan">
+              <thead>
+                <tr>
+                  <th>Karyawan</th>
+                  <th>ID</th>
+                  <th>Golongan</th>
+                  <th>Status</th>
+                  <th>Departemen</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-karyawan"></tbody>
+            </table>
           </div>
+          <div class="pagination" id="pagination-karyawan"></div>
         </div>
-      </div>
 
-      <div class="card">
-        <div class="table-wrapper">
-          <table class="data-table" id="table-penggajian">
-            <thead>
-              <tr>
-                <th>ID</th><th>Nama</th><th>Jabatan</th>
-                <th>Lembur (jam)</th><th>Absensi (hari)</th>
-                <th>Gaji Pokok</th><th>Total Tunjangan</th>
-                <th>Total Potongan</th><th>Gaji Bersih</th><th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="tbody-penggajian"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Modal Input Lembur/Absensi -->
-      <div class="modal-overlay" id="modal-penggajian">
-        <div class="modal">
-          <div class="modal-header">
-            <h2 id="modal-pg-title">Input Data Penggajian</h2>
-            <button class="modal-close" id="close-modal-pg">✕</button>
-          </div>
-          <div id="pg-karyawan-info" class="info-box"></div>
-          <form id="form-penggajian" novalidate>
-            <input type="hidden" id="pg-id-karyawan" />
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Jam Lembur <span class="required">*</span></label>
-                <input type="number" id="pg-lembur" class="input-field" min="0" max="100" step="0.5" value="0" />
-                <span class="error-msg" id="err-lembur"></span>
-                <small>Maks 100 jam/bulan</small>
+        <!-- Modal Form Karyawan -->
+        <div class="modal-overlay" id="modal-karyawan">
+          <div class="modal">
+            <div class="modal-header">
+              <h2 id="modal-karyawan-title">Tambah Karyawan</h2>
+              <button class="modal-close" id="close-modal-karyawan">✕</button>
+            </div>
+            <form id="form-karyawan" novalidate>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>ID Karyawan <span class="required">*</span></label>
+                  <input type="text" id="f-id" class="input-field" placeholder="KRY-001" maxlength="10" />
+                  <span class="error-msg" id="err-id"></span>
+                </div>
+                <div class="form-group">
+                  <label>Nama Lengkap <span class="required">*</span></label>
+                  <input type="text" id="f-nama" class="input-field" placeholder="Nama karyawan" maxlength="60" />
+                  <span class="error-msg" id="err-nama"></span>
+                </div>
+                <div class="form-group">
+                  <label>Jabatan <span class="required">*</span></label>
+                  <select id="f-jabatan" class="input-field">
+                    <option value="">-- Pilih Jabatan --</option>
+                    <option value="Direktur">Direktur</option>
+                    <option value="Manajer">Manajer</option>
+                    <option value="Supervisor">Supervisor</option>
+                    <option value="Staff Senior">Staff Senior</option>
+                    <option value="Staff Junior">Staff Junior</option>
+                    <option value="Magang">Magang</option>
+                  </select>
+                  <span class="error-msg" id="err-jabatan"></span>
+                </div>
+                <div class="form-group">
+                  <label>Golongan <span class="required">*</span></label>
+                  <select id="f-golongan" class="input-field">
+                    <option value="">-- Pilih Golongan --</option>
+                    <option value="I">Golongan I</option>
+                    <option value="II">Golongan II</option>
+                    <option value="III">Golongan III</option>
+                    <option value="IV">Golongan IV</option>
+                    <option value="V">Golongan V</option>
+                  </select>
+                  <span class="error-msg" id="err-golongan"></span>
+                </div>
+                <div class="form-group">
+                  <label>Status Karyawan <span class="required">*</span></label>
+                  <select id="f-status" class="input-field">
+                    <option value="">-- Pilih Status --</option>
+                    <option value="Tetap">Tetap</option>
+                    <option value="Kontrak">Kontrak</option>
+                    <option value="Magang">Magang</option>
+                  </select>
+                  <span class="error-msg" id="err-status"></span>
+                </div>
+                <div class="form-group">
+                  <label>Departemen <span class="required">*</span></label>
+                  <select id="f-departemen" class="input-field">
+                    <option value="">-- Pilih Departemen --</option>
+                    <option value="IT">IT</option>
+                    <option value="HRD">HRD</option>
+                    <option value="Keuangan">Keuangan</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Operasional">Operasional</option>
+                    <option value="Produksi">Produksi</option>
+                  </select>
+                  <span class="error-msg" id="err-departemen"></span>
+                </div>
+                <div class="form-group">
+                  <label>NPWP</label>
+                  <input type="text" id="f-npwp" class="input-field" placeholder="Opsional (15 digit)" maxlength="15" />
+                  <span class="error-msg" id="err-npwp"></span>
+                </div>
+                <div class="form-group">
+                  <label>Status PTKP</label>
+                  <select id="f-ptkp" class="input-field">
+                    <option value="TK0">TK/0 — Tidak Kawin, 0 tanggungan</option>
+                    <option value="TK1">TK/1 — Tidak Kawin, 1 tanggungan</option>
+                    <option value="TK2">TK/2 — Tidak Kawin, 2 tanggungan</option>
+                    <option value="TK3">TK/3 — Tidak Kawin, 3 tanggungan</option>
+                    <option value="K0">K/0 — Kawin, 0 tanggungan</option>
+                    <option value="K1">K/1 — Kawin, 1 tanggungan</option>
+                    <option value="K2">K/2 — Kawin, 2 tanggungan</option>
+                    <option value="K3">K/3 — Kawin, 3 tanggungan</option>
+                  </select>
+                </div>
               </div>
-              <div class="form-group">
-                <label>Hari Tidak Hadir <span class="required">*</span></label>
-                <input type="number" id="pg-absensi" class="input-field" min="0" max="26" step="1" value="0" />
-                <span class="error-msg" id="err-absensi"></span>
-                <small>Maks 26 hari kerja</small>
+              <div class="form-actions">
+                <button type="button" class="btn btn-ghost" id="cancel-karyawan">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan Karyawan</button>
               </div>
-            </div>
-            <div class="form-actions">
-              <button type="button" class="btn btn-ghost" id="cancel-pg">Batal</button>
-              <button type="submit" class="btn btn-primary">Hitung & Simpan</button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- PAGE: SLIP GAJI -->
-    <div class="page" id="page-slip">
-      <div class="page-header">
-        <h1>Slip Gaji</h1>
-        <p class="page-sub">Lihat dan cetak slip gaji karyawan</p>
-      </div>
-
-      <div class="card">
-        <div class="filter-bar">
-          <select id="slip-bulan" class="input-field"></select>
-          <select id="slip-tahun" class="input-field"></select>
-          <input type="text" id="slip-search" class="input-field" placeholder="Cari nama / ID..." />
+      <!-- ══════════════════════════════════
+           PAGE: HITUNG GAJI
+      ══════════════════════════════════ -->
+      <div class="page" id="page-penggajian">
+        <div class="page-header">
+          <div>
+            <h1>Hitung Gaji Karyawan</h1>
+            <p class="page-sub">Input data lembur dan absensi untuk menghitung gaji periode ini</p>
+          </div>
         </div>
-        <div id="slip-list"></div>
-      </div>
 
-      <!-- Slip Detail Modal -->
-      <div class="modal-overlay" id="modal-slip">
-        <div class="modal modal-large" id="slip-print-area">
-          <div class="modal-header no-print-close">
-            <h2>Slip Gaji</h2>
-            <div class="modal-actions">
-              <button class="btn btn-ghost" onclick="window.print()">🖨 Cetak</button>
-              <button class="modal-close" id="close-modal-slip">✕</button>
+        <div class="penggajian-controls card">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Bulan</label>
+              <select id="pg-bulan" class="input-field"></select>
+            </div>
+            <div class="form-group">
+              <label>Tahun</label>
+              <input type="number" id="pg-tahun" class="input-field" min="2020" max="2030" />
+            </div>
+            <div class="form-group">
+              <label>Filter Departemen</label>
+              <select id="pg-dept" class="input-field">
+                <option value="">Semua</option>
+              </select>
+            </div>
+            <div class="form-group align-end">
+              <button class="btn btn-primary" id="btn-hitung-semua">Hitung Semua Gaji</button>
             </div>
           </div>
-          <div id="slip-detail-content"></div>
+        </div>
+
+        <div class="card">
+          <div class="table-wrapper">
+            <table class="data-table" id="table-penggajian">
+              <thead>
+                <tr>
+                  <th>Karyawan</th>
+                  <th>Lembur (jam)</th>
+                  <th>Absensi (hari)</th>
+                  <th>Gaji Pokok</th>
+                  <th>Total Tunjangan</th>
+                  <th>Total Potongan</th>
+                  <th>Gaji Bersih</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-penggajian"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Modal Input Lembur/Absensi -->
+        <div class="modal-overlay" id="modal-penggajian">
+          <div class="modal">
+            <div class="modal-header">
+              <h2 id="modal-pg-title">Input Data Penggajian</h2>
+              <button class="modal-close" id="close-modal-pg">✕</button>
+            </div>
+            <div id="pg-karyawan-info" class="info-box"></div>
+            <form id="form-penggajian" novalidate>
+              <input type="hidden" id="pg-id-karyawan" />
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Jam Lembur <span class="required">*</span></label>
+                  <input type="number" id="pg-lembur" class="input-field" min="0" max="100" step="0.5" value="0" />
+                  <span class="error-msg" id="err-lembur"></span>
+                  <small>Maks 100 jam/bulan</small>
+                </div>
+                <div class="form-group">
+                  <label>Hari Tidak Hadir <span class="required">*</span></label>
+                  <input type="number" id="pg-absensi" class="input-field" min="0" max="26" step="1" value="0" />
+                  <span class="error-msg" id="err-absensi"></span>
+                  <small>Maks 26 hari kerja</small>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn btn-ghost" id="cancel-pg">Batal</button>
+                <button type="submit" class="btn btn-primary">Hitung & Simpan</button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- PAGE: LAPORAN -->
-    <div class="page" id="page-laporan">
-      <div class="page-header">
-        <h1>Laporan Penggajian</h1>
-        <p class="page-sub">Rekap total penggajian per bulan dan departemen</p>
-      </div>
+      <!-- ══════════════════════════════════
+           PAGE: SLIP GAJI
+      ══════════════════════════════════ -->
+      <div class="page" id="page-slip">
+        <div class="page-header">
+          <div>
+            <h1>Slip Gaji</h1>
+            <p class="page-sub">Lihat dan cetak slip gaji karyawan</p>
+          </div>
+        </div>
 
-      <div class="card">
-        <div class="filter-bar">
-          <select id="lap-bulan" class="input-field"></select>
-          <select id="lap-tahun" class="input-field"></select>
-          <select id="lap-dept" class="input-field">
-            <option value="">Semua Departemen</option>
-          </select>
-          <button class="btn btn-primary" id="btn-generate-laporan">Generate</button>
-          <button class="btn btn-ghost" id="btn-export-laporan">⬇ Export CSV</button>
+        <div class="card">
+          <div class="filter-bar">
+            <select id="slip-bulan" class="input-field"></select>
+            <select id="slip-tahun" class="input-field"></select>
+            <input type="text" id="slip-search" class="input-field" placeholder="🔍  Cari nama / ID..." />
+          </div>
+          <div id="slip-list"></div>
+        </div>
+
+        <!-- Slip Detail Modal -->
+        <div class="modal-overlay" id="modal-slip">
+          <div class="modal modal-large" id="slip-print-area">
+            <div class="modal-header no-print-close">
+              <h2>Slip Gaji</h2>
+              <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="window.print()">🖨 Cetak</button>
+                <button class="modal-close" id="close-modal-slip">✕</button>
+              </div>
+            </div>
+            <div id="slip-detail-content"></div>
+          </div>
         </div>
       </div>
 
-      <div id="laporan-summary" class="stats-grid"></div>
+      <!-- ══════════════════════════════════
+           PAGE: LAPORAN PENGGAJIAN
+      ══════════════════════════════════ -->
+      <div class="page" id="page-laporan">
+        <div class="page-header">
+          <div>
+            <h1>Laporan Penggajian</h1>
+            <p class="page-sub">Rekap total penggajian per periode dan departemen</p>
+          </div>
+        </div>
 
-      <div class="card">
-        <div class="table-wrapper">
-          <table class="data-table" id="table-laporan">
-            <thead>
-              <tr>
-                <th>ID</th><th>Nama</th><th>Jabatan</th><th>Departemen</th>
-                <th>Gaji Pokok</th><th>Tunjangan</th><th>Lembur</th>
-                <th>Potongan</th><th>Gaji Bersih</th>
-              </tr>
-            </thead>
-            <tbody id="tbody-laporan"></tbody>
-          </table>
+        <div class="card">
+          <div class="filter-bar">
+            <select id="lap-bulan" class="input-field"></select>
+            <select id="lap-tahun" class="input-field"></select>
+            <select id="lap-dept" class="input-field">
+              <option value="">Semua Departemen</option>
+            </select>
+            <!-- Cross-filter rentang gaji -->
+            <div class="filter-bar-group">
+              <label>Gaji Min (Rp):</label>
+              <input type="number" id="lap-gaji-min" class="input-field" placeholder="0" min="0" step="500000" style="max-width:120px" />
+              <label>Maks:</label>
+              <input type="number" id="lap-gaji-max" class="input-field" placeholder="Tanpa batas" min="0" step="500000" style="max-width:130px" />
+            </div>
+            <button class="btn btn-primary" id="btn-generate-laporan">Generate</button>
+            <button class="btn btn-ghost" id="btn-export-laporan" title="Export ke CSV (Excel-ready)">⬇ CSV</button>
+            <button class="btn btn-ghost" id="btn-export-json" title="Export ke JSON (Python/Pandas-ready)">⬇ JSON</button>
+          </div>
+        </div>
+
+        <div id="laporan-summary" class="stats-grid"></div>
+
+        <div class="card">
+          <div class="table-wrapper">
+            <table class="data-table" id="table-laporan">
+              <thead>
+                <tr>
+                  <th>Karyawan</th>
+                  <th>Departemen</th>
+                  <th>Gaji Pokok</th>
+                  <th>Tunjangan</th>
+                  <th>Lembur</th>
+                  <th>Potongan</th>
+                  <th>Gaji Bersih</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-laporan"></tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
 
-  </main>
+      <!-- ══════════════════════════════════
+           PAGE: ANALITIK DATA
+      ══════════════════════════════════ -->
+      <div class="page" id="page-analitik">
+        <div class="page-header">
+          <div>
+            <h1>Analitik Data</h1>
+            <p class="page-sub">Visualisasi dan statistik deskriptif dari data penggajian</p>
+          </div>
+        </div>
 
-  <!-- Toast Notification -->
-  <div class="toast-container" id="toast-container"></div>
+        <!-- Kartu Statistik Deskriptif -->
+        <div class="stat-desc-grid" id="analytics-stat-cards"></div>
 
-  <!-- Scripts -->
-  <script src="js/utils/formatter.js"></script>
-  <script src="js/utils/validator.js"></script>
-  <script src="js/utils/storage.js"></script>
-  <script src="js/modules/constants.js"></script>
-  <script src="js/modules/salary.js"></script>
-  <script src="js/modules/employee.js"></script>
-  <script src="js/modules/payroll.js"></script>
-  <script src="js/modules/report.js"></script>
-  <script src="js/modules/slip.js"></script>
-  <script src="js/app.js"></script>
+        <!-- Baris 1: Tren & Komposisi -->
+        <div class="analytics-charts-grid">
+          <div class="chart-card">
+            <div class="chart-card-title">📈 Tren Biaya Gaji Bulanan</div>
+            <div class="chart-card-sub">Total Gaji Bersih vs Total Potongan per periode</div>
+            <div class="chart-canvas-wrap"><canvas id="chart-trend"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">🍩 Komposisi Pengeluaran</div>
+            <div class="chart-card-sub">Proporsi Gaji Pokok, Tunjangan, Lembur, dan Potongan</div>
+            <div class="chart-canvas-wrap"><canvas id="chart-composition"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Baris 2: Per Departemen & Histogram -->
+        <div class="analytics-charts-grid">
+          <div class="chart-card">
+            <div class="chart-card-title">📊 Rata-rata Gaji per Departemen</div>
+            <div class="chart-card-sub">Perbandingan anggaran gaji bersih antar departemen</div>
+            <div class="chart-canvas-wrap"><canvas id="chart-dept"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">📉 Distribusi Gaji Bersih (Histogram)</div>
+            <div class="chart-card-sub">Jumlah karyawan di setiap bracket gaji</div>
+            <div class="chart-canvas-wrap"><canvas id="chart-histogram"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════
+           PAGE: SIMULASI SKENARIO
+      ══════════════════════════════════ -->
+      <div class="page" id="page-skenario">
+        <div class="page-header">
+          <div>
+            <h1>Simulasi Skenario</h1>
+            <p class="page-sub">Analisis dampak kebijakan gaji — What-If Analysis (data asli tidak berubah)</p>
+          </div>
+        </div>
+
+        <div class="scenario-layout">
+
+          <!-- Panel Kontrol -->
+          <div class="scenario-controls">
+            <h3>⚙️ Parameter Kebijakan</h3>
+
+            <div class="scenario-param">
+              <div class="scenario-param-header">
+                <span class="scenario-param-label">Kenaikan Gaji Pokok</span>
+                <span class="scenario-param-val" id="sc-kenaikan-gaji-val">0%</span>
+              </div>
+              <input type="range" id="sc-kenaikan-gaji" min="0" max="50" step="1" value="0" />
+              <small>Berlaku untuk semua golongan (I–V)</small>
+            </div>
+
+            <div class="scenario-param">
+              <div class="scenario-param-header">
+                <span class="scenario-param-label">Kenaikan Tarif BPJS TK</span>
+                <span class="scenario-param-val" id="sc-kenaikan-bpjs-val">0%</span>
+              </div>
+              <input type="range" id="sc-kenaikan-bpjs" min="0" max="5" step="0.5" value="0" />
+              <small>BPJS Ketenagakerjaan (saat ini 2%)</small>
+            </div>
+
+            <div class="scenario-param">
+              <div class="scenario-param-header">
+                <span class="scenario-param-label">Tambah Tunjangan Makan</span>
+                <span class="scenario-param-val" id="sc-tunjangan-makan-val">0 Rp</span>
+              </div>
+              <input type="range" id="sc-tunjangan-makan" min="0" max="500000" step="25000" value="0" />
+              <small>Ditambahkan ke tunjangan makan saat ini (Rp 250.000)</small>
+            </div>
+
+            <div class="scenario-param">
+              <div class="scenario-param-header">
+                <span class="scenario-param-label">Tambah Tunjangan Transport</span>
+                <span class="scenario-param-val" id="sc-tunjangan-transport-val">0 Rp</span>
+              </div>
+              <input type="range" id="sc-tunjangan-transport" min="0" max="500000" step="25000" value="0" />
+              <small>Ditambahkan ke tunjangan transport saat ini (Rp 300.000)</small>
+            </div>
+
+            <div class="scenario-param">
+              <div class="scenario-param-header">
+                <span class="scenario-param-label">Tambahan Jam Lembur</span>
+                <span class="scenario-param-val" id="sc-tambahan-lembur-val">0 jam</span>
+              </div>
+              <input type="range" id="sc-tambahan-lembur" min="0" max="40" step="1" value="0" />
+              <small>Rata-rata tambahan lembur per karyawan/bulan</small>
+            </div>
+
+            <div class="scenario-actions">
+              <button class="btn btn-primary" id="btn-run-scenario">▶ Jalankan Simulasi</button>
+              <button class="btn btn-ghost"    id="btn-reset-scenario">↺ Reset Parameter</button>
+            </div>
+          </div>
+
+          <!-- Panel Hasil -->
+          <div class="scenario-result-panel">
+            <div class="scenario-hint" id="scenario-hint">
+              <div class="hint-icon">🔮</div>
+              <h3>Simulasi Belum Dijalankan</h3>
+              <p>Atur parameter kebijakan di sebelah kiri, lalu tekan "Jalankan Simulasi" untuk melihat proyeksi dampaknya.</p>
+            </div>
+
+            <div id="scenario-result" style="display:none">
+              <div class="stats-grid" id="scenario-impact"></div>
+              <div class="scenario-chart-wrap">
+                <div class="chart-card-title" style="margin-bottom:4px">📊 Perbandingan Before vs After</div>
+                <div class="chart-card-sub">Gaji Bersih, Potongan, dan Rata-rata per Karyawan</div>
+                <div class="scenario-chart-canvas">
+                  <canvas id="chart-scenario"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div><!-- /.app-body -->
+
+</div><!-- /.app-shell -->
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ══════════════════════════════════════
+     SCRIPTS — Urutan: Utility → Module → App
+══════════════════════════════════════ -->
+<script src="js/utils/api.js"></script>           <!-- API helper → backend -->
+<script src="js/utils/formatter.js"></script>
+<script src="js/utils/validator.js"></script>
+<script src="js/utils/storage.js"></script>
+<script src="js/utils/statistics.js"></script>      <!-- Statistik deskriptif -->
+<script src="js/modules/constants.js"></script>
+<script src="js/modules/salary.js"></script>
+<script src="js/modules/employee.js"></script>
+<script src="js/modules/payroll.js"></script>
+<script src="js/modules/report.js"></script>
+<script src="js/modules/slip.js"></script>
+<script src="js/modules/analytics.js"></script>     <!-- Chart.js visualisasi -->
+<script src="js/modules/scenario.js"></script>       <!-- What-If Analysis -->
+<script src="js/app.js"></script>
+
+<!-- ── UI Enhancement Script ── -->
+<script>
+(function() {
+  "use strict";
+
+  /* ─────────────────────────────────────
+     AUTH CHECK — Redirect ke Login jika belum masuk
+  ───────────────────────────────────── */
+  if (!localStorage.getItem("sigaji_token")) {
+    window.location.replace("login.html");
+    return;
+  }
+
+  /* ─────────────────────────────────────
+     THEME — Terapkan tema tersimpan
+  ───────────────────────────────────── */
+  const html      = document.documentElement;
+  const btnTheme  = document.getElementById("btn-theme");
+  let isDark = localStorage.getItem("sigaji_theme") === "dark";
+
+  function applyTheme() {
+    html.setAttribute("data-theme", isDark ? "dark" : "light");
+    btnTheme.textContent = isDark ? "☀️" : "🌙";
+  }
+
+  applyTheme();
+
+  btnTheme.addEventListener("click", () => {
+    isDark = !isDark;
+    localStorage.setItem("sigaji_theme", isDark ? "dark" : "light");
+    applyTheme();
+  });
+
+  /* ─────────────────────────────────────
+     USER INFO — Tampilkan info user
+  ───────────────────────────────────── */
+  const userRaw = localStorage.getItem("sigaji_user");
+  if (userRaw) {
+    try {
+      const user = JSON.parse(userRaw);
+      const initial = user.nama ? user.nama[0].toUpperCase() : "A";
+
+      document.getElementById("sidebar-avatar").textContent    = initial;
+      document.getElementById("sidebar-user-name").textContent = user.nama || "Administrator";
+      document.getElementById("sidebar-user-role").textContent = user.email || "admin@sigaji.id";
+      document.getElementById("topbar-avatar").textContent     = initial;
+      document.getElementById("topbar-user-name").textContent  = user.nama || "Administrator";
+    } catch (_) {}
+  }
+
+  /* ─────────────────────────────────────
+     TOPBAR DROPDOWN
+  ───────────────────────────────────── */
+  const dropdownBtn  = document.getElementById("topbar-user-btn");
+  const dropdownMenu = document.getElementById("topbar-dropdown");
+
+  dropdownBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dropdownMenu.classList.toggle("open");
+  });
+
+  document.addEventListener("click", () => {
+    dropdownMenu.classList.remove("open");
+  });
+
+  /* ─────────────────────────────────────
+     LOGOUT
+  ───────────────────────────────────── */
+  document.getElementById("btn-logout").addEventListener("click", () => {
+    if (confirm("Yakin ingin keluar dari SiGaji?")) {
+      // Hapus token JWT dari localStorage
+      localStorage.removeItem("sigaji_token");
+      localStorage.removeItem("sigaji_user");
+      window.location.replace("login.html");
+    }
+  });
+
+  /* ─────────────────────────────────────
+     TOPBAR TITLE — Update saat navigasi
+  ───────────────────────────────────── */
+  const PAGE_TITLES = {
+    dashboard:  "Dashboard",
+    karyawan:   "Data Karyawan",
+    penggajian: "Hitung Gaji",
+    slip:       "Slip Gaji",
+    laporan:    "Laporan Penggajian",
+    analitik:   "Analitik Data",
+    skenario:   "Simulasi Skenario",
+  };
+
+  // Observe active page changes via MutationObserver on nav items
+  document.querySelectorAll(".nav-item").forEach(item => {
+    item.addEventListener("click", () => {
+      const page = item.dataset.page;
+      if (PAGE_TITLES[page]) {
+        document.getElementById("topbar-title").textContent = PAGE_TITLES[page];
+      }
+    });
+  });
+
+  /* ─────────────────────────────────────
+     PERIOD BANNER — Isi otomatis
+  ───────────────────────────────────── */
+  async function updatePeriodBanner() {
+    const BULAN = ["Januari","Februari","Maret","April","Mei","Juni",
+                   "Juli","Agustus","September","Oktober","November","Desember"];
+    const now   = new Date();
+    const label = `${BULAN[now.getMonth()]} ${now.getFullYear()}`;
+
+    const bannerPeriod = document.getElementById("hero-month") || document.getElementById("banner-period");
+    if (bannerPeriod) bannerPeriod.textContent = label;
+
+    try {
+      const resPg = await API.payroll.getAll({ bulan: now.getMonth() + 1, tahun: now.getFullYear() });
+      const thisMonth = resPg?.data || [];
+      if (thisMonth.length > 0) {
+        const totalGaji     = thisMonth.reduce((s, p) => s + Number(p.total_gaji_bersih || p.gajiBersih || 0), 0);
+        const totalPotongan = thisMonth.reduce((s, p) => s + Number(p.potongan || p.totalPotongan || 0), 0);
+        document.getElementById("banner-total-gaji").textContent     = Formatter ? Formatter.singkat(totalGaji) : totalGaji;
+        document.getElementById("banner-total-potongan").textContent = Formatter ? Formatter.singkat(totalPotongan) : totalPotongan;
+      } else {
+        document.getElementById("banner-total-gaji").textContent     = "—";
+        document.getElementById("banner-total-potongan").textContent = "—";
+      }
+
+      const resK = await API.employees.getAll();
+      const allK = resK?.data || [];
+      document.getElementById("banner-jumlah-karyawan").textContent = allK.length || "—";
+    } catch (err) {
+      console.error("Gagal memuat banner:", err);
+    }
+  }
+
+  // Jalankan setelah modul-modul dimuat
+  window.addEventListener("load", updatePeriodBanner);
+
+  /* ─────────────────────────────────────
+     TOMBOL DEMO dari Dashboard
+  ───────────────────────────────────── */
+  const btnDemo = document.getElementById("btn-demo-from-dash");
+  if (btnDemo) {
+    btnDemo.addEventListener("click", () => {
+      if (typeof StressTest !== "undefined") {
+        StressTest.run(30);
+        setTimeout(updatePeriodBanner, 500);
+      }
+    });
+  }
+
+  /* ─────────────────────────────────────
+     TOMBOL REFRESH
+  ───────────────────────────────────── */
+  document.getElementById("btn-refresh").addEventListener("click", () => {
+    updatePeriodBanner();
+    if (typeof DashboardModule !== "undefined") DashboardModule.refresh();
+  });
+
+})();
+</script>
+
 </body>
 </html>

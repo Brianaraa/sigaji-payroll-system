@@ -51,26 +51,29 @@ const Toast = (() => {
 
 // ── ROUTER ──
 const Router = (() => {
-  const pages = ["dashboard", "karyawan", "penggajian", "slip", "laporan"];
+  // Daftar semua halaman yang valid
+  const pages = ["dashboard", "karyawan", "penggajian", "slip", "laporan", "analitik", "skenario"];
 
   function navigate(pageId) {
     if (!pages.includes(pageId)) return;
 
-    // Update nav
+    // Update navigasi aktif
     document.querySelectorAll(".nav-item").forEach(item => {
       item.classList.toggle("active", item.dataset.page === pageId);
     });
 
-    // Show page
+    // Tampilkan halaman yang sesuai
     document.querySelectorAll(".page").forEach(page => {
       page.classList.toggle("active", page.id === `page-${pageId}`);
     });
 
-    // Refresh konten saat masuk halaman
-    if (pageId === "dashboard") DashboardModule.refresh();
-    if (pageId === "karyawan") EmployeeModule.render();
+    // Panggil refresh/render modul yang sesuai
+    if (pageId === "dashboard")  DashboardModule.refresh();
+    if (pageId === "karyawan")   EmployeeModule.render();
     if (pageId === "penggajian") PayrollModule.renderTable();
-    if (pageId === "slip") SlipModule.renderList();
+    if (pageId === "slip")       SlipModule.renderList();
+    if (pageId === "analitik")   AnalyticsModule.render();
+    if (pageId === "skenario")   ScenarioModule.render();
   }
 
   function init() {
@@ -85,131 +88,102 @@ const Router = (() => {
 
 // ── DASHBOARD MODULE ──
 const DashboardModule = (() => {
-  function refresh() {
-    const karyawan = Storage.getAllKaryawan();
-    const sekarang = new Date();
-    const bulan = sekarang.getMonth() + 1;
-    const tahun = sekarang.getFullYear();
-    const penggajian = Storage.getPenggajianByBulan(bulan, tahun);
+  function avatarClass(nama) {
+    let sum = 0;
+    for (let i = 0; i < (nama || '').length; i++) sum += nama.charCodeAt(i);
+    return 'av-' + (sum % 8);
+  }
 
-    const totalGaji = penggajian.reduce((s, p) => s + p.gajiBersih, 0);
-    const totalPotongan = penggajian.reduce((s, p) => s + p.totalPotongan, 0);
+  async function refresh() {
+    try {
+      const sekarang = new Date();
+      const bulan = sekarang.getMonth() + 1;
+      const tahun = sekarang.getFullYear();
 
-    // Stats
-    document.getElementById("stats-grid").innerHTML = `
-      <div class="stat-card" style="--accent-color:var(--accent-primary)">
-        <div class="stat-label">Total Karyawan</div>
-        <div class="stat-value">${karyawan.length}</div>
-        <div class="stat-sub">Terdaftar</div>
-      </div>
-      <div class="stat-card" style="--accent-color:var(--accent-success)">
-        <div class="stat-label">Sudah Dihitung</div>
-        <div class="stat-value">${penggajian.length}</div>
-        <div class="stat-sub">${CONSTANTS.BULAN[bulan - 1]} ${tahun}</div>
-      </div>
-      <div class="stat-card" style="--accent-color:var(--accent-info)">
-        <div class="stat-label">Total Gaji Bersih</div>
-        <div class="stat-value">${Formatter.singkat(totalGaji)}</div>
-        <div class="stat-sub">${Formatter.rupiah(totalGaji)}</div>
-      </div>
-      <div class="stat-card" style="--accent-color:var(--accent-danger)">
-        <div class="stat-label">Total Potongan</div>
-        <div class="stat-value">${Formatter.singkat(totalPotongan)}</div>
-        <div class="stat-sub">${Formatter.rupiah(totalPotongan)}</div>
-      </div>
-    `;
+      // Ambil data dari API secara paralel
+      const [empRes, pgRes] = await Promise.all([
+        API.employees.getAll(),
+        API.payroll.getAll({ bulan, tahun }),
+      ]);
 
-    // Departemen summary
-    const deptCounts = {};
-    karyawan.forEach(k => {
-      deptCounts[k.departemen] = (deptCounts[k.departemen] || 0) + 1;
-    });
+      const karyawan   = empRes?.data || [];
+      const penggajian = pgRes?.data  || [];
 
-    const maxCount = Math.max(...Object.values(deptCounts), 1);
-    const deptHTML = Object.entries(deptCounts).length > 0
-      ? Object.entries(deptCounts).sort((a, b) => b[1] - a[1]).map(([dept, count]) => `
-          <div class="dept-row">
-            <div class="dept-name">${dept}</div>
-            <div class="dept-bar-wrap">
-              <div class="dept-bar" style="width:${(count / maxCount * 100).toFixed(0)}%"></div>
+      const totalGaji     = penggajian.reduce((s, p) => s + (p.total_gaji_bersih || 0), 0);
+      const totalPotongan = penggajian.reduce((s, p) => s + (p.potongan || 0), 0);
+
+      // Hero Stats
+      const elHeroMonth = document.getElementById("hero-month");
+      if (elHeroMonth) {
+        elHeroMonth.textContent = `${CONSTANTS.BULAN[bulan - 1]} ${tahun}`;
+        document.getElementById("banner-total-gaji").textContent = Formatter.rupiah(totalGaji);
+        document.getElementById("banner-total-potongan").textContent = Formatter.rupiah(totalPotongan);
+        document.getElementById("banner-jumlah-karyawan").textContent = karyawan.length.toString();
+      }
+
+      // Departemen summary
+      const deptCounts = {};
+      karyawan.forEach(k => {
+        deptCounts[k.departemen] = (deptCounts[k.departemen] || 0) + 1;
+      });
+
+      const maxCount = Math.max(...Object.values(deptCounts), 1);
+      const deptHTML = Object.entries(deptCounts).length > 0
+        ? Object.entries(deptCounts).sort((a, b) => b[1] - a[1]).map(([dept, count]) => `
+            <div class="dept-row">
+              <div class="dept-name">${dept}</div>
+              <div class="dept-bar-wrap">
+                <div class="dept-bar" style="width:${(count / maxCount * 100).toFixed(0)}%"></div>
+              </div>
+              <div class="dept-count">${count} org</div>
             </div>
-            <div class="dept-count">${count} org</div>
-          </div>
-        `).join("")
-      : `<div class="empty-state"><p>Belum ada data</p></div>`;
+          `).join("")
+        : `<div class="empty-state"><p>Belum ada data</p></div>`;
 
-    document.getElementById("dept-summary-list").innerHTML = deptHTML;
+      document.getElementById("dept-summary-list").innerHTML = deptHTML;
 
-    // Recent employees (5 terbaru)
-    const recent = [...karyawan]
-      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
-      .slice(0, 5);
+      // Recent employees (5 terbaru)
+      const recent = [...karyawan]
+        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+        .slice(0, 5);
 
-    const recentHTML = recent.length > 0
-      ? recent.map(k => `
-          <div class="dept-row">
-            <div>
-              <div class="dept-name">${k.nama}</div>
-              <div class="dept-count">${k.jabatan} · ${k.departemen}</div>
-            </div>
-            <span class="badge badge-${k.status.toLowerCase()}">${k.status}</span>
-          </div>
-        `).join("")
-      : `<div class="empty-state"><p>Belum ada karyawan</p></div>`;
+      const recentHTML = recent.length > 0
+        ? recent.map(k => {
+            const nama     = k.nama_lengkap || '';
+            const initials = nama ? nama.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase() : '?';
+            const avColor  = avatarClass(nama);
+            const status   = k.status_pekerjaan || '-';
+            return `
+              <div class="dept-row">
+                <div class="employee-cell" style="flex:1">
+                  <div class="avatar ${avColor}" style="width:30px;height:30px;font-size:11px">${initials}</div>
+                  <div>
+                    <div class="dept-name">${nama}</div>
+                    <div class="dept-count">${k.jabatan || ''} · ${k.departemen || ''}</div>
+                  </div>
+                </div>
+                <span class="badge badge-${status.toLowerCase()}">${status}</span>
+              </div>`;
+          }).join("")
+        : `<div class="empty-state"><p>Belum ada karyawan</p></div>`;
 
-    document.getElementById("recent-employees").innerHTML = recentHTML;
+      document.getElementById("recent-employees").innerHTML = recentHTML;
+    } catch (err) {
+      console.error('[Dashboard] refresh error:', err);
+    }
   }
 
   return { refresh };
 })();
 
-// ── STRESS TEST HELPER ──
-// Tersedia via console: StressTest.run(n) untuk testing
+// ── STRESS TEST HELPER (dinonaktifkan di mode DB) ──
 const StressTest = (() => {
-  function run(jumlah = 100) {
-    console.time(`StressTest: seed ${jumlah} karyawan`);
-    const seeded = Storage.seedDemoData(jumlah);
-    console.timeEnd(`StressTest: seed ${jumlah} karyawan`);
-
-    console.time(`StressTest: hitung ${jumlah} gaji`);
-    const karyawan = Storage.getAllKaryawan();
-    let berhasil = 0, gagal = 0;
-    karyawan.forEach(k => {
-      try {
-        const jamLembur = Math.floor(Math.random() * 40);
-        const hariAbsensi = Math.floor(Math.random() * 5);
-        const hasil = SalaryCalculator.hitungGajiLengkap(k, jamLembur, hariAbsensi);
-        Storage.savePenggajian({
-          ...hasil,
-          bulan: new Date().getMonth() + 1,
-          tahun: new Date().getFullYear(),
-        });
-        berhasil++;
-      } catch (e) {
-        gagal++;
-        console.error("Gagal:", k.id, e.message);
-      }
-    });
-    console.timeEnd(`StressTest: hitung ${jumlah} gaji`);
-    console.log(`Hasil: ${berhasil} berhasil, ${gagal} gagal`);
-
-    DashboardModule.refresh();
-    EmployeeModule.render();
-    PayrollModule.renderTable();
-    Toast.show(`Stress test selesai: ${berhasil} karyawan dihitung`, "info");
-
-    return { seeded, berhasil, gagal };
+  function run() {
+    Toast.show('Stress test tidak tersedia di mode database.', 'warning');
   }
-
   function clear() {
-    Storage.clearAll();
-    DashboardModule.refresh();
-    EmployeeModule.render();
-    PayrollModule.renderTable();
-    SlipModule.renderList();
-    Toast.show("Semua data berhasil dihapus", "info");
+    Toast.show('Reset data: hapus manual melalui phpMyAdmin.', 'info');
   }
-
   return { run, clear };
 })();
 
@@ -219,10 +193,11 @@ document.addEventListener("DOMContentLoaded", () => {
   PayrollModule.init();
   SlipModule.init();
   ReportModule.init();
+  ScenarioModule.init(); // Inisialisasi slider dan event listener halaman skenario
   Router.init();
 
   console.log(
-    "%cSiGaji v1.0.0\n%cUntuk stress test: StressTest.run(100)\nUntuk reset: StressTest.clear()",
+    "%cSiGaji v2.0.0\n%cAnalitik: klik menu 'Analitik'\nStress test: StressTest.run(100)\nReset: StressTest.clear()",
     "color:#3b82f6;font-size:16px;font-weight:bold",
     "color:#94a3b8;font-size:12px"
   );
